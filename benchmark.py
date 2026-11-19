@@ -74,7 +74,7 @@ def blue_center(mask):
             (float(rows.mean()) + .5) / mask.shape[0]]
 
 
-def run(ctx, width, height, mode, frames):
+def run(ctx, width, height, mode, frames, packet_sink=None):
     texture = ctx.texture((width, height), 4)
     texture.filter = (moderngl.LINEAR, moderngl.LINEAR)
     source = ctx.framebuffer([texture])
@@ -156,7 +156,10 @@ def run(ctx, width, height, mode, frames):
             packet = {"t": frame / SOURCE_HZ, "object": "blue-disc", "xy": xy,
                       "z_authored": z, "incidence_authored": incidence, "blur_authored": .7,
                       "color_rgb": palette, "text": observed, "moving": moved}
-            packet_bytes += len(json.dumps(packet, separators=(",", ":")).encode()) + 1
+            serialized = json.dumps(packet, separators=(",", ":"))
+            packet_bytes += len(serialized.encode()) + 1
+            if packet_sink is not None:
+                packet_sink.write(serialized + "\n")
             last = frame
             phase_counts[0 if frame < frames / 4 else 1 if frame < 3 * frames / 4 else 2] += 1
         elif mode != "observed" or frame < 0:
@@ -199,6 +202,8 @@ def main():
     parser.add_argument("--frames", type=int, default=240)
     parser.add_argument("--repeat", type=int, default=3)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--stream", action="store_true",
+                        help="Write 1080p observed-mode packets as JSON Lines instead of a benchmark report")
     args = parser.parse_args()
     if args.frames < 24 or args.repeat < 1:
         parser.error("Use at least 24 frames and one repetition")
@@ -206,6 +211,10 @@ def main():
     renderer = ctx.info["GL_RENDERER"]
     if args.expect not in renderer:
         raise SystemExit(f"Wrong renderer: {renderer}")
+    if args.stream:
+        with args.output.open("x", encoding="utf-8") as output:
+            run(ctx, 1920, 1080, "observed", args.frames, packet_sink=output)
+        return
     cases = [(w,h,mode) for w,h in ((1280,720),(1920,1080),(2560,1440))
              for mode in ("full","coarse","hybrid","adaptive","observed")]
     rows = []

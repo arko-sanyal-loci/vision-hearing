@@ -40,3 +40,7 @@ The raw reports preserve all 90 case runs. The table reports the median run's p9
 At 1080p, hybrid reduced template RMS error from 0.219 to 0.051 by retaining the small text crop. Over two simulated seconds, observed scheduling emitted 140 packets versus 240 fixed-rate packets, with 119 packets during the 120-frame motion phase. It reduced serialized packet bytes by about 41% versus fixed hybrid capture. It reduced GPU readback only about 4% versus fixed hybrid because gating reads the preview every frame.
 
 Use 1080p with a 320 × 180 tracking preview and native text crops as the starting profile. At 1440p, the synthetic text metric was unchanged and the localization error increased in native pixel units because the preview size stayed fixed. Both GPUs had processing headroom for 100 updates per second with this fixture. A paced live stream and a model consuming those packets remain separate measurements.
+
+## Export packets
+
+Pass `--stream --frames 1440` and an unused JSON Lines output path to export a 12-second, 1080p observed-mode run. The Mr Calendar timeline reader combines it with MusicSympRev PCM measurements using the source timestamps.
